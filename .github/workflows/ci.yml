@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libgtest-dev clang-format clang-tidy
+
+      - name: Configure CMake
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build -- -j$(nproc)
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Check code formatting
+        run: |
+          find include src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+
+      - name: Static analysis with clang-tidy
+        run: |
+          find include src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-tidy -- -I include -std=c++17
+        continue-on-error: true
