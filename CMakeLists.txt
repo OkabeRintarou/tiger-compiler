@@ -70,3 +70,11 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
     ${PROJECT_SOURCE_DIR}/examples
     ${CMAKE_BINARY_DIR}/examples
     ERROR_QUIET)
+
+# Optional: Enable clang-tidy
+find_program(CLANG_TIDY clang-tidy)
+if(CLANG_TIDY)
+    message(STATUS "clang-tidy found: ${CLANG_TIDY}")
+    set_target_properties(tiger-lib PROPERTIES
+        CXX_CLANG_TIDY "${CLANG_TIDY}")
+endif()
