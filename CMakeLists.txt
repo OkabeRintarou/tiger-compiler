@@ -43,6 +43,7 @@ set(PARSER_SOURCES
 
 set(SEMANTIC_SOURCES
     src/semantic/types.cpp
+    src/semantic/semantic_analyzer.cpp
 )
 
 set(ALL_SOURCES
@@ -69,6 +70,7 @@ enable_testing()
 set(TEST_SOURCES
     tests/tiger_test.cpp
     tests/parser_test.cpp
+    tests/semantic_test.cpp
 )
 
 # Main test executable (links all test files together)
