@@ -64,9 +64,15 @@ target_link_libraries(tiger_highlighter PRIVATE tiger-lib)
 
 # Tests
 enable_testing()
-add_executable(tiger_tests tests/tiger_test.cpp)
 
-# Use system GTest or downloaded one
+# Collect all test source files
+set(TEST_SOURCES
+    tests/tiger_test.cpp
+    tests/parser_test.cpp
+)
+
+# Main test executable (links all test files together)
+add_executable(tiger_tests ${TEST_SOURCES})
 if(GTest_FOUND)
     target_link_libraries(tiger_tests PRIVATE tiger-lib gtest gtest_main pthread)
     target_include_directories(tiger_tests PRIVATE ${GTEST_INCLUDE_DIRS})
