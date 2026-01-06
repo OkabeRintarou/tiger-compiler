@@ -49,9 +49,15 @@ set(ALL_SOURCES
 
 add_library(tiger-lib STATIC ${ALL_SOURCES})
 
+# Main compiler executable
 add_executable(tigercc src/main.cpp)
 target_link_libraries(tigercc PRIVATE tiger-lib)
 
+# Syntax highlighter tool
+add_executable(tiger_highlighter tools/syntax_highlighter.cpp)
+target_link_libraries(tiger_highlighter PRIVATE tiger-lib)
+
+# Tests
 enable_testing()
 add_executable(tiger_tests tests/tiger_test.cpp)
 
