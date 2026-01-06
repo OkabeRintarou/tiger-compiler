@@ -2,6 +2,7 @@
 #define TIGER_AST_HPP
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -335,6 +336,74 @@ public:
 // ========== Utility Functions ==========
 
 std::string opToString(OpExpr::Op op);
+
+// ========== Visitor Template Implementations ==========
+
+template <typename ResultType>
+ResultType Expr::accept(Visitor<ResultType>& visitor) {
+    switch (kind) {
+        case Kind::VAR:
+            return visitor.visit(static_cast<VarExpr*>(this));
+        case Kind::NIL:
+            return visitor.visit(static_cast<NilExpr*>(this));
+        case Kind::INT:
+            return visitor.visit(static_cast<IntExpr*>(this));
+        case Kind::STRING:
+            return visitor.visit(static_cast<StringExpr*>(this));
+        case Kind::CALL:
+            return visitor.visit(static_cast<CallExpr*>(this));
+        case Kind::OP:
+            return visitor.visit(static_cast<OpExpr*>(this));
+        case Kind::RECORD:
+            return visitor.visit(static_cast<RecordExpr*>(this));
+        case Kind::ARRAY:
+            return visitor.visit(static_cast<ArrayExpr*>(this));
+        case Kind::ASSIGN:
+            return visitor.visit(static_cast<AssignExpr*>(this));
+        case Kind::IF:
+            return visitor.visit(static_cast<IfExpr*>(this));
+        case Kind::WHILE:
+            return visitor.visit(static_cast<WhileExpr*>(this));
+        case Kind::FOR:
+            return visitor.visit(static_cast<ForExpr*>(this));
+        case Kind::BREAK:
+            return visitor.visit(static_cast<BreakExpr*>(this));
+        case Kind::LET:
+            return visitor.visit(static_cast<LetExpr*>(this));
+        case Kind::SEQ:
+            return visitor.visit(static_cast<SeqExpr*>(this));
+        default:
+            throw std::runtime_error("Unknown expression kind");
+    }
+}
+
+template <typename ResultType>
+ResultType Type::accept(Visitor<ResultType>& visitor) {
+    switch (kind) {
+        case Kind::NAME:
+            return visitor.visit(static_cast<NameType*>(this));
+        case Kind::RECORD:
+            return visitor.visit(static_cast<RecordType*>(this));
+        case Kind::ARRAY:
+            return visitor.visit(static_cast<ArrayType*>(this));
+        default:
+            throw std::runtime_error("Unknown type kind");
+    }
+}
+
+template <typename ResultType>
+ResultType Decl::accept(Visitor<ResultType>& visitor) {
+    switch (kind) {
+        case Kind::TYPE:
+            return visitor.visit(static_cast<TypeDecl*>(this));
+        case Kind::VAR:
+            return visitor.visit(static_cast<VarDecl*>(this));
+        case Kind::FUNCTION:
+            return visitor.visit(static_cast<FunctionDecl*>(this));
+        default:
+            throw std::runtime_error("Unknown declaration kind");
+    }
+}
 
 }  // namespace tiger
 
