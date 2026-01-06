@@ -65,7 +65,7 @@ enum class TokenType {
 
 // Token class
 class Token {
-   public:
+public:
     TokenType type;
     std::string lexeme;
     int line;

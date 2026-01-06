@@ -11,11 +11,11 @@
 namespace tiger {
 
 class Parser {
-   public:
+public:
     explicit Parser(const std::vector<Token>& tokens);
     ExprPtr parse();
 
-   private:
+private:
     const std::vector<Token>& tokens_;
     size_t pos_;
 

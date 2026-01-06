@@ -12,14 +12,14 @@ namespace tools {
 
 /**
  * @brief Syntax highlighter using visitor pattern for terminal output
- * 
+ *
  * This visitor traverses the AST and generates terminal output with ANSI color codes.
  * Different language constructs are colored differently for better code readability.
  */
 class SyntaxHighlighter : public Visitor<std::string> {
-   public:
+public:
     SyntaxHighlighter();
-    
+
     /**
      * @brief Generate highlighted output from an expression
      * @param expr The root expression to highlight
@@ -54,7 +54,7 @@ class SyntaxHighlighter : public Visitor<std::string> {
     std::string visit(RecordType* type) override;
     std::string visit(ArrayType* type) override;
 
-   private:
+private:
     int indent_level_;
 
     // ANSI color codes

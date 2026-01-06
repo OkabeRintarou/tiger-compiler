@@ -24,7 +24,7 @@ using TypePtr = std::shared_ptr<Type>;
 
 // Base class for all types in Tiger type system
 class Type {
-   public:
+public:
     enum Kind {
         INT,
         STRING,
@@ -36,10 +36,10 @@ class Type {
         FUNCTION
     };
 
-   protected:
+protected:
     Kind kind_;
 
-   public:
+public:
     explicit Type(Kind k) : kind_(k) {}
     virtual ~Type() = default;
 
@@ -74,28 +74,28 @@ class Type {
 
 // Integer type
 class IntType : public Type {
-   public:
+public:
     IntType() : Type(INT) {}
     std::string toString() const override { return "int"; }
 };
 
 // String type
 class StringType : public Type {
-   public:
+public:
     StringType() : Type(STRING) {}
     std::string toString() const override { return "string"; }
 };
 
 // Nil type (can only be assigned to record types)
 class NilType : public Type {
-   public:
+public:
     NilType() : Type(NIL) {}
     std::string toString() const override { return "nil"; }
 };
 
 // Void type (for functions with no return value)
 class VoidType : public Type {
-   public:
+public:
     VoidType() : Type(VOID) {}
     std::string toString() const override { return "void"; }
 };
@@ -110,11 +110,11 @@ struct RecordField {
 
 // Record type (struct)
 class RecordType : public Type {
-   private:
+private:
     std::vector<RecordField> fields_;
     int id_;  // Unique identifier to distinguish different record definitions
 
-   public:
+public:
     explicit RecordType(int id) : Type(RECORD), id_(id) {}
 
     void addField(const std::string& name, TypePtr type) { fields_.emplace_back(name, type); }
@@ -152,11 +152,11 @@ class RecordType : public Type {
 
 // Array type
 class ArrayType : public Type {
-   private:
+private:
     TypePtr elementType_;
     int id_;  // Unique identifier
 
-   public:
+public:
     ArrayType(TypePtr elemType, int id) : Type(ARRAY), elementType_(elemType), id_(id) {}
 
     TypePtr getElementType() const { return elementType_; }
@@ -172,11 +172,11 @@ class ArrayType : public Type {
 
 // Named type (type alias that needs to be resolved)
 class NameType : public Type {
-   private:
+private:
     std::string name_;
     mutable TypePtr binding_;  // Bound actual type (lazy resolution)
 
-   public:
+public:
     explicit NameType(const std::string& name) : Type(NAME), name_(name), binding_(nullptr) {}
 
     const std::string& getName() const { return name_; }
@@ -212,11 +212,11 @@ class NameType : public Type {
 
 // Function type
 class FunctionType : public Type {
-   private:
+private:
     std::vector<TypePtr> paramTypes_;
     TypePtr returnType_;
 
-   public:
+public:
     FunctionType(const std::vector<TypePtr>& params, TypePtr ret)
         : Type(FUNCTION), paramTypes_(params), returnType_(ret) {}
 
@@ -236,7 +236,7 @@ class FunctionType : public Type {
 
 // Type context - manages all type instances (LLVM-style)
 class TypeContext {
-   private:
+private:
     // Primitive types (shared instances)
     std::shared_ptr<IntType> intType_;
     std::shared_ptr<StringType> stringType_;
@@ -251,7 +251,7 @@ class TypeContext {
     // Note: In Tiger, array types are nominal, not structural
     // So we don't actually cache them - each array type declaration creates a new type
 
-   public:
+public:
     TypeContext()
         : intType_(std::make_shared<IntType>()),
           stringType_(std::make_shared<StringType>()),

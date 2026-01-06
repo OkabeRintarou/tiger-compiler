@@ -12,7 +12,7 @@ namespace semantic {
 
 // Base class for value entries (variables and functions)
 class ValueEntry {
-   public:
+public:
     enum Kind { VAR, FUNC };
 
     virtual ~ValueEntry() = default;
@@ -26,11 +26,11 @@ using ValueEntryPtr = std::shared_ptr<ValueEntry>;
 
 // Entry for variables in symbol table
 class VarEntry : public ValueEntry {
-   private:
+private:
     TypePtr type_;
     bool readOnly_;  // For loop variables
 
-   public:
+public:
     VarEntry(TypePtr type, bool readOnly = false) : type_(type), readOnly_(readOnly) {}
 
     Kind getKind() const override { return VAR; }
@@ -40,11 +40,11 @@ class VarEntry : public ValueEntry {
 
 // Entry for functions in symbol table
 class FuncEntry : public ValueEntry {
-   private:
+private:
     std::vector<TypePtr> paramTypes_;
     TypePtr returnType_;
 
-   public:
+public:
     FuncEntry(const std::vector<TypePtr>& params, TypePtr ret)
         : paramTypes_(params), returnType_(ret) {}
 
@@ -59,14 +59,14 @@ class FuncEntry : public ValueEntry {
 //   1. Type namespace (for type declarations)
 //   2. Value namespace (for variables AND functions - they share the same namespace)
 class Environment {
-   private:
+private:
     TypeContext& typeCtx_;                 // Type context (manages all types)
     SymbolTable<TypePtr> typeEnv_;         // Type namespace
     SymbolTable<ValueEntryPtr> valueEnv_;  // Value namespace (variables + functions)
 
     int loopDepth_;  // Track nesting depth of loops (for break statement)
 
-   public:
+public:
     explicit Environment(TypeContext& ctx) : typeCtx_(ctx), loopDepth_(0) { initBuiltins(); }
 
     // Get type context
@@ -132,7 +132,7 @@ class Environment {
     void exitLoop() { --loopDepth_; }
     bool inLoop() const { return loopDepth_ > 0; }
 
-   private:
+private:
     // Initialize built-in types and functions
     void initBuiltins() {
         // Built-in types

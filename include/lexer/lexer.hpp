@@ -9,13 +9,13 @@
 namespace tiger {
 
 class Lexer {
-   public:
+public:
     explicit Lexer(const std::string& source);
 
     // Tokenize the entire source and return a list of tokens
     std::vector<Token> tokenize();
 
-   private:
+private:
     std::string source_;
     size_t pos_;
     int line_;

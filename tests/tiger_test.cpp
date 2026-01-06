@@ -21,7 +21,7 @@ std::string readFile(const std::string& filename) {
 }
 
 class ParserTest : public ::testing::Test {
-   protected:
+protected:
     bool parseFile(const std::string& filename) {
         try {
             std::string source = readFile(filename);

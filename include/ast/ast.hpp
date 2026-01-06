@@ -51,14 +51,14 @@ template <typename ResultType = void>
 class Visitor;
 
 class ASTNode {
-   public:
+public:
     virtual ~ASTNode() = default;
     virtual std::string toString() const = 0;
 };
 
 template <typename ResultType>
 class Visitor {
-   public:
+public:
     virtual ~Visitor() = default;
 
     virtual ResultType visit(VarExpr* expr) = 0;
@@ -89,7 +89,7 @@ class Visitor {
 // ========== Types ==========
 
 class Type : public ASTNode {
-   public:
+public:
     enum class Kind { NAME, RECORD, ARRAY };
     Kind kind;
     explicit Type(Kind k) : kind(k) {}
@@ -99,21 +99,21 @@ class Type : public ASTNode {
 };
 
 class NameType : public Type {
-   public:
+public:
     std::string name;
     NameType(const std::string& n) : Type(Kind::NAME), name(n) {}
     std::string toString() const override { return "NameType(" + name + ")"; }
 };
 
 class RecordType : public Type {
-   public:
+public:
     FieldList fields;
     RecordType() : Type(Kind::RECORD) {}
     std::string toString() const override;
 };
 
 class ArrayType : public Type {
-   public:
+public:
     std::string element_type;
     ArrayType(const std::string& et) : Type(Kind::ARRAY), element_type(et) {}
     std::string toString() const override { return "ArrayType(" + element_type + ")"; }
@@ -122,7 +122,7 @@ class ArrayType : public Type {
 // ========== Fields ==========
 
 class Field : public ASTNode {
-   public:
+public:
     std::string name;
     std::string type_id;
     bool escape;
@@ -136,7 +136,7 @@ class Field : public ASTNode {
 // ========== Declarations ==========
 
 class Decl : public ASTNode {
-   public:
+public:
     enum class Kind { TYPE, VAR, FUNCTION };
     Kind kind;
     explicit Decl(Kind k) : kind(k) {}
@@ -146,7 +146,7 @@ class Decl : public ASTNode {
 };
 
 class TypeDecl : public Decl {
-   public:
+public:
     std::string name;
     TypePtr type;
     TypeDecl(const std::string& n, TypePtr t) : Decl(Kind::TYPE), name(n), type(t) {}
@@ -154,7 +154,7 @@ class TypeDecl : public Decl {
 };
 
 class VarDecl : public Decl {
-   public:
+public:
     std::string name;
     std::string type_id;
     ExprPtr init;
@@ -165,7 +165,7 @@ class VarDecl : public Decl {
 };
 
 class FunctionDecl : public Decl {
-   public:
+public:
     std::string name;
     FieldList params;
     std::string result_type;
@@ -178,7 +178,7 @@ class FunctionDecl : public Decl {
 // ========== Expressions ==========
 
 class Expr : public ASTNode {
-   public:
+public:
     enum class Kind {
         VAR,
         NIL,
@@ -204,7 +204,7 @@ class Expr : public ASTNode {
 };
 
 class VarExpr : public Expr {
-   public:
+public:
     enum class VarKind { SIMPLE, FIELD, SUBSCRIPT };
     VarKind var_kind;
     std::string name;
@@ -217,27 +217,27 @@ class VarExpr : public Expr {
 };
 
 class NilExpr : public Expr {
-   public:
+public:
     NilExpr() : Expr(Kind::NIL) {}
     std::string toString() const override { return "Nil()"; }
 };
 
 class IntExpr : public Expr {
-   public:
+public:
     int value;
     explicit IntExpr(int v) : Expr(Kind::INT), value(v) {}
     std::string toString() const override { return "Int(" + std::to_string(value) + ")"; }
 };
 
 class StringExpr : public Expr {
-   public:
+public:
     std::string value;
     explicit StringExpr(const std::string& v) : Expr(Kind::STRING), value(v) {}
     std::string toString() const override { return "String(\"" + value + "\")"; }
 };
 
 class CallExpr : public Expr {
-   public:
+public:
     std::string func;
     ExprList args;
     CallExpr(const std::string& f, const ExprList& a) : Expr(Kind::CALL), func(f), args(a) {}
@@ -245,7 +245,7 @@ class CallExpr : public Expr {
 };
 
 class OpExpr : public Expr {
-   public:
+public:
     enum class Op { PLUS, MINUS, TIMES, DIVIDE, EQ, NEQ, LT, GT, LE, GE, AND, OR };
     Op oper;
     ExprPtr left;
@@ -255,7 +255,7 @@ class OpExpr : public Expr {
 };
 
 class RecordExpr : public Expr {
-   public:
+public:
     std::string type_id;
     std::vector<std::pair<std::string, ExprPtr>> fields;
     RecordExpr(const std::string& tid, const std::vector<std::pair<std::string, ExprPtr>>& f)
@@ -264,7 +264,7 @@ class RecordExpr : public Expr {
 };
 
 class ArrayExpr : public Expr {
-   public:
+public:
     std::string type_id;
     ExprPtr size;
     ExprPtr init;
@@ -274,7 +274,7 @@ class ArrayExpr : public Expr {
 };
 
 class AssignExpr : public Expr {
-   public:
+public:
     ExprPtr var;
     ExprPtr expr;
     AssignExpr(ExprPtr v, ExprPtr e) : Expr(Kind::ASSIGN), var(v), expr(e) {}
@@ -282,7 +282,7 @@ class AssignExpr : public Expr {
 };
 
 class IfExpr : public Expr {
-   public:
+public:
     ExprPtr test;
     ExprPtr then_clause;
     ExprPtr else_clause;
@@ -292,7 +292,7 @@ class IfExpr : public Expr {
 };
 
 class WhileExpr : public Expr {
-   public:
+public:
     ExprPtr test;
     ExprPtr body;
     WhileExpr(ExprPtr t, ExprPtr b) : Expr(Kind::WHILE), test(t), body(b) {}
@@ -300,7 +300,7 @@ class WhileExpr : public Expr {
 };
 
 class ForExpr : public Expr {
-   public:
+public:
     std::string var;
     ExprPtr lo;
     ExprPtr hi;
@@ -312,13 +312,13 @@ class ForExpr : public Expr {
 };
 
 class BreakExpr : public Expr {
-   public:
+public:
     BreakExpr() : Expr(Kind::BREAK) {}
     std::string toString() const override { return "Break()"; }
 };
 
 class LetExpr : public Expr {
-   public:
+public:
     DeclList decls;
     ExprList body;
     LetExpr(const DeclList& d, const ExprList& b) : Expr(Kind::LET), decls(d), body(b) {}
@@ -326,7 +326,7 @@ class LetExpr : public Expr {
 };
 
 class SeqExpr : public Expr {
-   public:
+public:
     ExprList exprs;
     explicit SeqExpr(const ExprList& e) : Expr(Kind::SEQ), exprs(e) {}
     std::string toString() const override;

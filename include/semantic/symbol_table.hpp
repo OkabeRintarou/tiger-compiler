@@ -11,11 +11,11 @@ namespace tiger {
 // Supports enter/lookup operations with lexical scoping
 template <typename T>
 class SymbolTable {
-   private:
+private:
     // Each scope is a hash table mapping names to values
     std::vector<std::unordered_map<std::string, T>> scopes_;
 
-   public:
+public:
     SymbolTable() {
         // Start with a global scope
         beginScope();
