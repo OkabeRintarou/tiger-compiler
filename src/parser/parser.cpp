@@ -79,10 +79,13 @@ ExprPtr Parser::parse() {
     }
 }
 
+// Grammar: Program -> Exp
 ExprPtr Parser::parseProgram() { return parseExpr(); }
 
+// Grammar: Exp -> ExpOr
 ExprPtr Parser::parseExpr() { return parseExprOr(); }
 
+// Grammar: ExpOr -> ExpAnd { '|' ExpAnd }
 ExprPtr Parser::parseExprOr() {
     ExprPtr left = parseExprAnd();
     while (match(TokenType::OR)) {
@@ -92,6 +95,7 @@ ExprPtr Parser::parseExprOr() {
     return left;
 }
 
+// Grammar: ExpAnd -> ExpCmp { '&' ExpCmp }
 ExprPtr Parser::parseExprAnd() {
     ExprPtr left = parseExprComparison();
     while (match(TokenType::AND)) {
@@ -101,6 +105,8 @@ ExprPtr Parser::parseExprAnd() {
     return left;
 }
 
+// Grammar: ExpCmp -> ExpAdd { CmpOp ExpAdd }
+//   CmpOp -> '=' | '<>' | '<' | '>' | '<=' | '>='
 ExprPtr Parser::parseExprComparison() {
     ExprPtr left = parseExprAdditive();
     while (check(TokenType::EQ) || check(TokenType::NEQ) || check(TokenType::LT) ||
@@ -113,6 +119,8 @@ ExprPtr Parser::parseExprComparison() {
     return left;
 }
 
+// Grammar: ExpAdd -> ExpMul { AddOp ExpMul }
+//   AddOp -> '+' | '-'
 ExprPtr Parser::parseExprAdditive() {
     ExprPtr left = parseExprMultiplicative();
     while (match(TokenType::PLUS) || match(TokenType::MINUS)) {
@@ -124,6 +132,8 @@ ExprPtr Parser::parseExprAdditive() {
     return left;
 }
 
+// Grammar: ExpMul -> ExpUnary { MulOp ExpUnary }
+//   MulOp -> '*' | '/'
 ExprPtr Parser::parseExprMultiplicative() {
     ExprPtr left = parseExprUnary();
     while (match(TokenType::TIMES) || match(TokenType::DIVIDE)) {
@@ -135,6 +145,7 @@ ExprPtr Parser::parseExprMultiplicative() {
     return left;
 }
 
+// Grammar: ExpUnary -> '-' ExpUnary | ExpPrimary
 ExprPtr Parser::parseExprUnary() {
     if (match(TokenType::MINUS)) {
         ExprPtr expr = parseExprUnary();
@@ -144,6 +155,11 @@ ExprPtr Parser::parseExprUnary() {
     return parseExprPrimary();
 }
 
+// Grammar: ExpPrimary -> nil | integer | string | Lvalue | '(' ExpSeq ')'
+//                      | IfExp | WhileExp | ForExp | break | LetExp
+//                      | id '(' [ Exp { ',' Exp } ] ')'
+//                      | type-id '{' [ id '=' Exp { ',' id '=' Exp } ] '}'
+//                      | type-id '[' Exp ']' of Exp
 ExprPtr Parser::parseExprPrimary() {
     if (match(TokenType::NIL)) return std::make_shared<NilExpr>();
 
@@ -195,6 +211,7 @@ ExprPtr Parser::parseExprPrimary() {
     error("Expected expression");
 }
 
+// Grammar: Lvalue -> id { '.' id | '[' Exp ']' } [ ':=' Exp ]
 ExprPtr Parser::parseLvalue(const std::string& id) {
     auto var_expr = std::make_shared<VarExpr>(id);
 
@@ -226,6 +243,7 @@ ExprPtr Parser::parseLvalue(const std::string& id) {
     return var_expr;
 }
 
+// Grammar: CallExp -> id '(' [ Exp { ',' Exp } ] ')'
 ExprPtr Parser::parseCallExpr(const std::string& id) {
     consume(TokenType::LPAREN, "Expected '(' after function name");
     ExprList args;
@@ -238,6 +256,7 @@ ExprPtr Parser::parseCallExpr(const std::string& id) {
     return std::make_shared<CallExpr>(id, args);
 }
 
+// Grammar: RecordExp -> type-id '{' [ id '=' Exp { ',' id '=' Exp } ] '}'
 ExprPtr Parser::parseRecordExpr(const std::string& type_id) {
     consume(TokenType::LBRACE, "Expected '{' for record creation");
     std::vector<std::pair<std::string, ExprPtr>> fields;
@@ -255,6 +274,7 @@ ExprPtr Parser::parseRecordExpr(const std::string& type_id) {
     return std::make_shared<RecordExpr>(type_id, fields);
 }
 
+// Grammar: ArrayExp -> type-id '[' Exp ']' of Exp
 ExprPtr Parser::parseArrayExpr(const std::string& type_id) {
     consume(TokenType::LBRACK, "Expected '[' for array creation");
     ExprPtr size = parseExpr();
@@ -264,6 +284,7 @@ ExprPtr Parser::parseArrayExpr(const std::string& type_id) {
     return std::make_shared<ArrayExpr>(type_id, size, init);
 }
 
+// Grammar: IfExp -> if Exp then Exp [ else Exp ]
 ExprPtr Parser::parseIfExpr() {
     consume(TokenType::IF, "Expected 'if'");
     ExprPtr test = parseExpr();
@@ -276,6 +297,7 @@ ExprPtr Parser::parseIfExpr() {
     return std::make_shared<IfExpr>(test, then_clause, else_clause);
 }
 
+// Grammar: WhileExp -> while Exp do Exp
 ExprPtr Parser::parseWhileExpr() {
     consume(TokenType::WHILE, "Expected 'while'");
     ExprPtr test = parseExpr();
@@ -284,6 +306,7 @@ ExprPtr Parser::parseWhileExpr() {
     return std::make_shared<WhileExpr>(test, body);
 }
 
+// Grammar: ForExp -> for id ':=' Exp to Exp do Exp
 ExprPtr Parser::parseForExpr() {
     consume(TokenType::FOR, "Expected 'for'");
     Token id = consume(TokenType::ID, "Expected variable name after 'for'");
@@ -296,6 +319,9 @@ ExprPtr Parser::parseForExpr() {
     return std::make_shared<ForExpr>(id.lexeme, lo, hi, body);
 }
 
+// Grammar: LetExp -> let Decs in ExpSeq end
+//   Decs -> Dec { Dec }
+//   ExpSeq -> [ Exp { ';' Exp } ]
 ExprPtr Parser::parseLetExpr() {
     consume(TokenType::LET, "Expected 'let'");
     DeclList decls = parseDeclarationList();
@@ -312,6 +338,8 @@ ExprPtr Parser::parseLetExpr() {
     return std::make_shared<LetExpr>(decls, body);
 }
 
+// Grammar: SeqExp -> '(' ExpSeq ')'
+//   ExpSeq -> [ Exp { ';' Exp } ]
 ExprPtr Parser::parseSeqExpr() {
     consume(TokenType::LPAREN, "Expected '('");
     ExprList exprs;
@@ -324,6 +352,7 @@ ExprPtr Parser::parseSeqExpr() {
     return std::make_shared<SeqExpr>(exprs);
 }
 
+// Grammar: Dec -> TypeDec | VarDec | FuncDec
 DeclPtr Parser::parseDeclaration() {
     if (check(TokenType::TYPE)) return parseTypeDeclaration();
     if (check(TokenType::VAR)) return parseVarDeclaration();
@@ -331,6 +360,7 @@ DeclPtr Parser::parseDeclaration() {
     error("Expected declaration");
 }
 
+// Grammar: Decs -> Dec { Dec }
 DeclList Parser::parseDeclarationList() {
     DeclList decls;
     while (check(TokenType::TYPE) || check(TokenType::VAR) || check(TokenType::FUNCTION)) {
@@ -347,6 +377,10 @@ DeclPtr Parser::parseTypeDeclaration() {
     return std::make_shared<TypeDecl>(id.lexeme, type);
 }
 
+// Grammar: Ty -> type-id
+//          | '{' TyFields '}'
+//          | array of type-id
+//   TyFields -> [ id ':' type-id { ',' id ':' type-id } ]
 TypePtr Parser::parseType() {
     if (check(TokenType::LBRACE)) {
         consume(TokenType::LBRACE, "Expected '{' for record type");
@@ -373,6 +407,7 @@ TypePtr Parser::parseType() {
     return std::make_shared<NameType>(id.lexeme);
 }
 
+// Grammar: VarDec -> var id [ ':' type-id ] ':=' Exp
 DeclPtr Parser::parseVarDeclaration() {
     consume(TokenType::VAR, "Expected 'var'");
     Token id = consume(TokenType::ID, "Expected variable name");
@@ -389,6 +424,8 @@ DeclPtr Parser::parseVarDeclaration() {
     return std::make_shared<VarDecl>(id.lexeme, type_id, init);
 }
 
+// Grammar: FuncDec -> function id '(' TyFields ')' [ ':' type-id ] '=' Exp
+//   TyFields -> [ id ':' type-id { ',' id ':' type-id } ]
 DeclPtr Parser::parseFunctionDeclaration() {
     consume(TokenType::FUNCTION, "Expected 'function'");
     Token id = consume(TokenType::ID, "Expected function name");
@@ -412,6 +449,7 @@ DeclPtr Parser::parseFunctionDeclaration() {
     return std::make_shared<FunctionDecl>(id.lexeme, params, result_type, body);
 }
 
+// Grammar: TyFields -> id ':' type-id { ',' id ':' type-id }
 FieldList Parser::parseTypeFields() {
     FieldList fields;
     do {
@@ -420,6 +458,7 @@ FieldList Parser::parseTypeFields() {
     return fields;
 }
 
+// Grammar: TyField -> id ':' type-id
 FieldPtr Parser::parseTypeField() {
     Token name = consume(TokenType::ID, "Expected parameter name");
     consume(TokenType::COLON, "Expected ':' after parameter name");
