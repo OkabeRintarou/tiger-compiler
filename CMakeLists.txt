@@ -41,10 +41,15 @@ set(PARSER_SOURCES
     src/parser/parser.cpp
 )
 
+set(SEMANTIC_SOURCES
+    src/semantic/types.cpp
+)
+
 set(ALL_SOURCES
     ${LEXER_SOURCES}
     ${AST_SOURCES}
     ${PARSER_SOURCES}
+    ${SEMANTIC_SOURCES}
 )
 
 add_library(tiger-lib STATIC ${ALL_SOURCES})
