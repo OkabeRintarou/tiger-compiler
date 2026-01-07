@@ -114,7 +114,7 @@ std::string SyntaxHighlighter::visit(VarExpr* expr) {
             result << identifier(expr->name);
             break;
         case VarExpr::VarKind::FIELD:
-            result << expr->var->accept(*this) << operator_text(".") << identifier(expr->field);
+            result << expr->var->accept(*this) << operator_text(".") << identifier(expr->name);
             break;
         case VarExpr::VarKind::SUBSCRIPT:
             result << expr->var->accept(*this) << operator_text("[") << expr->index->accept(*this)

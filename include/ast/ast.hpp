@@ -212,10 +212,9 @@ class VarExpr : public Expr {
 public:
     enum class VarKind { SIMPLE, FIELD, SUBSCRIPT };
     VarKind var_kind;
-    std::string name;
-    ExprPtr var;
-    std::string field;
-    ExprPtr index;
+    std::string name;  // For SIMPLE: variable name; for FIELD: field name; for SUBSCRIPT: unused
+    ExprPtr var;       // For FIELD/SUBSCRIPT: left side expression
+    ExprPtr index;     // For SUBSCRIPT: index expression
 
     VarExpr(const std::string& n) : Expr(Kind::VAR), var_kind(VarKind::SIMPLE), name(n) {}
     std::string toString() const override;

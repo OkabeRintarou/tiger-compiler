@@ -59,7 +59,7 @@ public:
             label += ": " + expr->name;
             emitNode(expr, label);
         } else if (expr->var_kind == VarExpr::VarKind::FIELD) {
-            label += "(Field): " + expr->field;
+            label += "(Field): " + expr->name;
             emitNode(expr, label);
             if (expr->var) {
                 expr->var->accept(*this);

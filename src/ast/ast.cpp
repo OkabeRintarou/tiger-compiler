@@ -44,7 +44,7 @@ std::string VarExpr::toString() const {
     if (var_kind == VarKind::SIMPLE) {
         oss << "Var(" << name << ")";
     } else if (var_kind == VarKind::FIELD) {
-        oss << "FieldVar(" << var->toString() << "." << field << ")";
+        oss << "FieldVar(" << var->toString() << "." << name << ")";
     } else {  // SUBSCRIPT
         oss << "SubscriptVar(" << var->toString() << "[" << index->toString() << "])";
     }
