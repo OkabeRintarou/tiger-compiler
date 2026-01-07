@@ -59,10 +59,6 @@ add_library(tiger-lib STATIC ${ALL_SOURCES})
 add_executable(tigercc src/main.cpp)
 target_link_libraries(tigercc PRIVATE tiger-lib)
 
-# Syntax highlighter tool
-add_executable(tiger_highlighter tools/syntax_highlighter.cpp)
-target_link_libraries(tiger_highlighter PRIVATE tiger-lib)
-
 # Tests
 enable_testing()
 
@@ -97,3 +93,11 @@ if(CLANG_TIDY)
     set_target_properties(tiger-lib PROPERTIES
         CXX_CLANG_TIDY "${CLANG_TIDY}")
 endif()
+
+# Syntax highlighter tool
+add_executable(tiger_highlighter tools/syntax_highlighter.cpp)
+target_link_libraries(tiger_highlighter PRIVATE tiger-lib)
+
+# AST dump tool
+add_executable(dot_dump tools/dot_dump.cpp)
+target_link_libraries(dot_dump PRIVATE tiger-lib)
