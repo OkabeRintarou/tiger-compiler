@@ -264,10 +264,10 @@ public:
           nextArrayId_(0) {}
 
     // Get primitive types
-    TypePtr getIntType() { return intType_; }
-    TypePtr getStringType() { return stringType_; }
-    TypePtr getNilType() { return nilType_; }
-    TypePtr getVoidType() { return voidType_; }
+    TypePtr getIntType() const { return intType_; }
+    TypePtr getStringType() const { return stringType_; }
+    TypePtr getNilType() const { return nilType_; }
+    TypePtr getVoidType() const { return voidType_; }
 
     // Create new record type (each declaration creates a unique type)
     std::shared_ptr<RecordType> createRecordType() {
