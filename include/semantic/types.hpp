@@ -234,7 +234,7 @@ public:
     }
 };
 
-// Type context - manages all type instances (LLVM-style)
+// Type context - manages all type instances
 class TypeContext {
 private:
     // Primitive types (shared instances)
@@ -247,9 +247,12 @@ private:
     int nextRecordId_;
     int nextArrayId_;
 
-    // Cache for array types (element type -> array type)
-    // Note: In Tiger, array types are nominal, not structural
-    // So we don't actually cache them - each array type declaration creates a new type
+    // Note on Tiger vs LLVM type systems:
+    // - LLVM uses structural typing: ArrayType::get() caches and returns the same
+    //   instance for arrays with the same element type (e.g., all [10 x i32] share one instance)
+    // - Tiger uses nominal typing: each "type arr = array of int" declaration
+    //   creates a DISTINCT type, even if the structure is identical
+    // Therefore, we DON't cache array/record types - each declaration gets a unique ID
 
 public:
     TypeContext()
