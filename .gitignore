@@ -47,7 +47,6 @@ i18n
 *.pdb
 
 # Editor files
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -56,9 +55,6 @@ i18n
 
 # CLion specific
 .idea/
-
-# VS Code specific
-.vscode/
 
 # Emacs
 *~
