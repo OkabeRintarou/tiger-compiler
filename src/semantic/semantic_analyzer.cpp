@@ -427,7 +427,7 @@ TypePtr SemanticAnalyzer::visit(VarDecl* decl) {
         if (!varType) {
             error("Undefined type in variable declaration: " + decl->type_id, 0, 0);
         }
-        checkAssignable(varType, initType, "variable declaration", 0, 0);
+        checkAssignable(varType, initType, decl->name, 0, 0);
     }
 
     // Enter variable into environment
