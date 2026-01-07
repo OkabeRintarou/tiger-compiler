@@ -248,5 +248,55 @@ TEST_F(SemanticTest, CannotAssignToForLoopVariable) {
     EXPECT_TRUE(hasError("for i := 1 to 10 do i := 5"));
 }
 
+// Test recursive record type
+TEST_F(SemanticTest, RecursiveRecordType) {
+    TypePtr type = analyze(
+        "let "
+        "  type intlist = {head: int, tail: intlist} "
+        "  var l := intlist{head=0, tail=nil} "
+        "in "
+        "  l "
+        "end");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isRecord());
+
+    auto record = dynamic_cast<semantic::RecordType*>(type->actual());
+    ASSERT_NE(record, nullptr);
+    const auto& fields = record->getFields();
+    ASSERT_EQ(fields.size(), 2);
+    EXPECT_EQ(fields[0].name, "head");
+    EXPECT_TRUE(fields[0].type->actual()->isInt());
+    EXPECT_EQ(fields[1].name, "tail");
+    EXPECT_EQ(fields[1].type->actual(), record);
+}
+
+// Test mutually recursive types
+TEST_F(SemanticTest, MutuallyRecursiveTypes) {
+    TypePtr type = analyze(
+        "let "
+        "  type tree = {key: int, children: treelist} "
+        "  type treelist = {head: tree, tail: treelist} "
+        "  var t := tree{key=0, children=nil} "
+        "in "
+        "  t "
+        "end");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isRecord());
+
+    auto treeRecord = dynamic_cast<semantic::RecordType*>(type->actual());
+    ASSERT_NE(treeRecord, nullptr);
+
+    auto childrenFieldType = treeRecord->getFieldType("children");
+    ASSERT_NE(childrenFieldType, nullptr);
+    EXPECT_TRUE(childrenFieldType->actual()->isRecord());
+
+    auto treelistRecord = dynamic_cast<semantic::RecordType*>(childrenFieldType->actual());
+    ASSERT_NE(treelistRecord, nullptr);
+
+    auto headFieldType = treelistRecord->getFieldType("head");
+    ASSERT_NE(headFieldType, nullptr);
+    EXPECT_EQ(headFieldType->actual(), treeRecord);
+}
+
 }  // namespace test
 }  // namespace tiger
