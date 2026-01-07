@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <fstream>
+#include <iterator>
+
 #include "ast/ast.hpp"
 #include "lexer/lexer.hpp"
 #include "parser/parser.hpp"
@@ -27,10 +30,31 @@ protected:
         return analyzer.analyze(ast);
     }
 
+    // Helper to analyze a Tiger program from file
+    TypePtr analyzeFile(const std::string& filename) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            throw std::runtime_error("Cannot open file: " + filename);
+        }
+        std::string source((std::istreambuf_iterator<char>(file)),
+                           std::istreambuf_iterator<char>());
+        return analyze(source);
+    }
+
     // Helper to check if analysis throws an error
     bool hasError(const std::string& source) {
         try {
             analyze(source);
+            return false;
+        } catch (const SemanticError& e) {
+            return true;
+        }
+    }
+
+    // Helper to check if analysis of a file throws an error
+    bool hasErrorFile(const std::string& filename) {
+        try {
+            analyzeFile(filename);
             return false;
         } catch (const SemanticError& e) {
             return true;
@@ -158,6 +182,44 @@ TEST_F(SemanticTest, ArrayTypeDeclaration) {
     ASSERT_NE(type, nullptr);
 }
 
+// Test examples/test1.tig - basic array type
+TEST_F(SemanticTest, Test1_ArrayType) {
+    TypePtr type = analyzeFile("examples/test1.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isArray());
+}
+
+// Test examples/test2.tig - type alias
+TEST_F(SemanticTest, Test2_TypeAlias) {
+    TypePtr type = analyzeFile("examples/test2.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isArray());
+}
+
+// Test examples/test3.tig - record type
+TEST_F(SemanticTest, Test3_RecordType) {
+    TypePtr type = analyzeFile("examples/test3.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isRecord());
+}
+
+// Test examples/test5.tig - recursive types
+TEST_F(SemanticTest, Test5_RecursiveTypes) {
+    TypePtr type = analyzeFile("examples/test5.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isRecord());
+}
+
+// Test examples/test16.tig - non-productive type cycle (should fail)
+TEST_F(SemanticTest, Test16_NonProductiveTypeCycle) {
+    EXPECT_TRUE(hasErrorFile("examples/test16.tig"));
+}
+
+// Test examples/test17.tig - interrupted type declarations (should fail)
+TEST_F(SemanticTest, Test17_InterruptedTypeDeclarations) {
+    EXPECT_TRUE(hasErrorFile("examples/test17.tig"));
+}
+
 // Test array creation
 TEST_F(SemanticTest, ArrayCreation) {
     TypePtr type = analyze("let type intArray = array of int in intArray[10] of 0 end");
@@ -253,11 +315,12 @@ TEST_F(SemanticTest, RecursiveRecordType) {
     TypePtr type = analyze(
         "let "
         "  type intlist = {head: int, tail: intlist} "
-        "  var l := intlist{head=0, tail=nil} "
+        "  var l := intlist{head=1, tail=nil}"
         "in "
         "  l "
         "end");
     ASSERT_NE(type, nullptr);
+
     EXPECT_TRUE(type->actual()->isRecord());
 
     auto record = dynamic_cast<semantic::RecordType*>(type->actual());

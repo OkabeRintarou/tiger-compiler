@@ -1,6 +1,7 @@
 #include "semantic/semantic_analyzer.hpp"
 
-#include <iostream>
+#include <cassert>
+#include <unordered_set>
 
 #include "ast/ast.hpp"
 
@@ -85,7 +86,53 @@ TypePtr SemanticAnalyzer::translateType(tiger::Type* astType) {
 // ========== Expression Visitors ==========
 
 TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
-    // Look up variable in value environment
+    // Handle field access (e.g., record.field)
+    if (expr->var_kind == VarExpr::VarKind::FIELD) {
+        // First, get the type of the left side (the record variable)
+        TypePtr varType = expr->var->accept(*this);
+
+        if (!varType) {
+            error("Field access on null type", 0, 0);
+        }
+
+        const RecordType* recordType = varType->asRecord();
+        if (!recordType) {
+            error("Field access on non-record type: " + varType->toString(), 0, 0);
+        }
+
+        // In FIELD mode, expr->name contains the field name
+        TypePtr fieldType = recordType->getFieldType(expr->name);
+        if (!fieldType) {
+            error("Record has no field named '" + expr->name + "'", 0, 0);
+        }
+
+        return fieldType;
+    }
+
+    // Handle array subscript (e.g., array[index])
+    if (expr->var_kind == VarExpr::VarKind::SUBSCRIPT) {
+        // First, get the type of the left side (the array variable)
+        TypePtr varType = expr->var->accept(*this);
+
+        if (!varType || !varType->isArray()) {
+            error("Array subscript on non-array type", 0, 0);
+        }
+
+        // Index expression must be int
+        TypePtr indexType = expr->index->accept(*this);
+        checkTypeEquals(env_.getTypeContext().getIntType(), indexType,
+                        "Array index must be integer", 0, 0);
+
+        // Return element type
+        const ArrayType* arrayType = varType->asArray();
+        if (!arrayType) {
+            error("Array subscript on non-array type", 0, 0);
+        }
+
+        return arrayType->getElementType();
+    }
+
+    // Simple variable - look up in value environment
     VarEntry* varEntry = env_.lookupVar(expr->name);
     if (!varEntry) {
         // Check if it's a function instead (better error message)
@@ -96,42 +143,6 @@ TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
         error("Undefined variable: " + expr->name, 0, 0);
     }
 
-    // Handle field access (e.g., record.field)
-    if (expr->var_kind == VarExpr::VarKind::FIELD) {
-        TypePtr varType = varEntry->getType();
-
-        if (!varType->isRecord()) {
-            error("Field access on non-record type: " + varType->toString(), 0, 0);
-        }
-
-        RecordType* recordType = static_cast<RecordType*>(varType->actual());
-        TypePtr fieldType = recordType->getFieldType(expr->field);
-        if (!fieldType) {
-            error("Record has no field named '" + expr->field + "'", 0, 0);
-        }
-
-        return fieldType;
-    }
-
-    // Handle array subscript (e.g., array[index])
-    if (expr->var_kind == VarExpr::VarKind::SUBSCRIPT) {
-        TypePtr varType = varEntry->getType();
-
-        if (!varType->isArray()) {
-            error("Array subscript on non-array type: " + varType->toString(), 0, 0);
-        }
-
-        // Index expression must be int
-        TypePtr indexType = expr->index->accept(*this);
-        checkTypeEquals(env_.getTypeContext().getIntType(), indexType,
-                        "Array index must be integer", 0, 0);
-
-        // Return element type
-        ArrayType* arrayType = static_cast<ArrayType*>(varType->actual());
-        return arrayType->getElementType();
-    }
-
-    // Simple variable
     return varEntry->getType();
 }
 
@@ -215,11 +226,11 @@ TypePtr SemanticAnalyzer::visit(RecordExpr* expr) {
         error("Undefined type: " + expr->type_id, 0, 0);
     }
 
-    if (!type->isRecord()) {
+    RecordType* recordType = type->asRecord();
+    if (recordType == nullptr) {
         error("Type '" + expr->type_id + "' is not a record type", 0, 0);
     }
 
-    RecordType* recordType = static_cast<RecordType*>(type->actual());
     const auto& recordFields = recordType->getFields();
 
     // Check field count
@@ -254,11 +265,11 @@ TypePtr SemanticAnalyzer::visit(ArrayExpr* expr) {
         error("Undefined type: " + expr->type_id, 0, 0);
     }
 
-    if (!type->isArray()) {
+    ArrayType* arrayType = type->asArray();
+    if (arrayType == nullptr) {
         error("Type '" + expr->type_id + "' is not an array type", 0, 0);
     }
 
-    ArrayType* arrayType = static_cast<ArrayType*>(type->actual());
     TypePtr elemType = arrayType->getElementType();
 
     // Size must be integer
@@ -379,11 +390,36 @@ TypePtr SemanticAnalyzer::visit(LetExpr* expr) {
     // Enter new scope for declarations
     env_.beginScope();
 
-    // Process declarations
-    for (const auto& decl : expr->decls) {
-        decl->accept(*this);
-    }
+    // Process declarations in groups
+    // Type declarations can only be mutually recursive if they are consecutive
+    size_t i = 0;
+    while (i < expr->decls.size()) {
+        // Find a consecutive group of type declarations
+        std::vector<std::shared_ptr<TypeDecl>> typeGroup;
+        while (i < expr->decls.size()) {
+            if (expr->decls[i]->isTypeDecl()) {
+                auto typeDecl = std::dynamic_pointer_cast<TypeDecl>(expr->decls[i]);
+                typeGroup.emplace_back(std::move(typeDecl));
+                i++;
+            } else {
+                break;
+            }
+        }
 
+        // Process the type declaration group
+        if (!typeGroup.empty()) {
+            processTypeDeclarations(typeGroup);
+        }
+
+        // Process non-type declarations
+        while (i < expr->decls.size()) {
+            if (expr->decls[i]->isTypeDecl()) {
+                break;  // Type declaration, start a new group
+            }
+            expr->decls[i]->accept(*this);
+            i++;
+        }
+    }
     // Process body expressions
     TypePtr lastType = env_.getTypeContext().getVoidType();
     for (const auto& e : expr->body) {
@@ -396,6 +432,63 @@ TypePtr SemanticAnalyzer::visit(LetExpr* expr) {
     return lastType;
 }
 
+void SemanticAnalyzer::processTypeDeclarations(
+    const std::vector<std::shared_ptr<TypeDecl>>& typeDecls) {
+    auto& ctx = env_.getTypeContext();
+
+    // Phase 1: Create NameType for all type declarations and register them
+    for (const auto& typeDecl : typeDecls) {
+        TypePtr nameType = ctx.createNameType(typeDecl->name);
+        env_.enterType(typeDecl->name, nameType);
+    }
+
+    // Phase 2: Translate type definitions (now all types in the group are registered)
+    for (const auto& typeDecl : typeDecls) {
+        TypePtr nameType = env_.lookupType(typeDecl->name);
+        if (nameType && nameType->isName()) {
+            TypePtr actualType = translateType(typeDecl->type.get());
+            static_cast<NameType*>(nameType.get())->bind(actualType);
+        }
+    }
+
+    // Phase 3: Check cycle of mutually recursive types
+    std::unordered_set<std::string> checkedNames;
+    std::unordered_set<std::string> deps;
+    std::vector<std::string> cycle;
+    for (const auto& typeDecl : typeDecls) {
+        if (checkedNames.find(typeDecl->name) != checkedNames.end()) continue;
+
+        cycle.clear();
+        deps = {typeDecl->name};
+        checkedNames.insert(typeDecl->name);
+        TypePtr type = env_.lookupType(typeDecl->name);
+        NameType* nameType = type->asName();
+
+        while (nameType != nullptr) {
+            auto actualType = nameType->getBinding();
+            if (auto actualNameType = actualType->asName(); actualNameType != nullptr) {
+                const auto& depName = actualNameType->getName();
+                cycle.emplace_back(depName);
+
+                if (deps.find(depName) == deps.end()) {
+                    deps.insert(depName);
+                    nameType = actualNameType;
+                } else {
+                    auto errorMsg =
+                        std::string("Find a cycle of type declaration '" + typeDecl->name + "': ");
+                    for (const auto& dep : cycle) {
+                        errorMsg += (" -> '" + dep + "'");
+                    }
+                    error(errorMsg, 0, 0);
+                }
+            } else {
+                // dependency is not a name type, break the cycle detection
+                break;
+            }
+        }
+    }
+}
+
 TypePtr SemanticAnalyzer::visit(SeqExpr* expr) {
     TypePtr lastType = env_.getTypeContext().getVoidType();
     for (const auto& e : expr->exprs) {
@@ -406,15 +499,7 @@ TypePtr SemanticAnalyzer::visit(SeqExpr* expr) {
 
 // ========== Declaration Visitors ==========
 
-TypePtr SemanticAnalyzer::visit(TypeDecl* decl) {
-    // Translate the type
-    TypePtr type = translateType(decl->type.get());
-
-    // Enter type into environment
-    env_.enterType(decl->name, type);
-
-    return nullptr;
-}
+TypePtr SemanticAnalyzer::visit(TypeDecl* decl) { return nullptr; }
 
 TypePtr SemanticAnalyzer::visit(VarDecl* decl) {
     // Check initializer expression

@@ -57,16 +57,22 @@ public:
 
     // Safe downcasting
     IntType* asInt();
+    const IntType* asInt() const;
     StringType* asString();
+    const StringType* asString() const;
     RecordType* asRecord();
+    const RecordType* asRecord() const;
     ArrayType* asArray();
+    const ArrayType* asArray() const;
     NameType* asName();
+    const NameType* asName() const;
 
     // Get actual type (resolve NameType aliases)
     virtual Type* actual() { return this; }
+    virtual const Type* actual() const { return this; }
 
     // Type equality comparison
-    virtual bool equals(Type* other);
+    virtual bool equals(const Type* other) const;
 
     // Print type information
     virtual std::string toString() const = 0;
@@ -133,21 +139,13 @@ public:
 
     int getId() const { return id_; }
 
-    bool equals(Type* other) override {
+    bool equals(const Type* other) const override {
         if (other->getKind() == NIL) return true;  // nil can be assigned to any record
         if (other->getKind() != RECORD) return false;
-        return id_ == static_cast<RecordType*>(other->actual())->id_;
+        return id_ == static_cast<const RecordType*>(other->actual())->id_;
     }
 
-    std::string toString() const override {
-        std::string result = "{";
-        for (size_t i = 0; i < fields_.size(); ++i) {
-            if (i > 0) result += ", ";
-            result += fields_[i].name + ": " + fields_[i].type->toString();
-        }
-        result += "}";
-        return result;
-    }
+    std::string toString() const override;
 };
 
 // Array type
@@ -162,9 +160,9 @@ public:
     TypePtr getElementType() const { return elementType_; }
     int getId() const { return id_; }
 
-    bool equals(Type* other) override {
+    bool equals(const Type* other) const override {
         if (other->getKind() != ARRAY) return false;
-        return id_ == static_cast<ArrayType*>(other->actual())->id_;
+        return id_ == static_cast<const ArrayType*>(other->actual())->id_;
     }
 
     std::string toString() const override { return "array of " + elementType_->toString(); }
@@ -185,7 +183,7 @@ public:
     TypePtr getBinding() const { return binding_; }
 
     Type* actual() override {
-        if (!binding_) return this;
+        if (!binding_) return nullptr;
         Type* t = binding_.get();
         // Recursively resolve type alias chains
         while (t && t->isName()) {
@@ -196,18 +194,25 @@ public:
         return t;
     }
 
-    bool equals(Type* other) override {
-        Type* act = actual();
+    const Type* actual() const override {
+        if (!binding_) return nullptr;
+        const Type* t = binding_.get();
+        // Recursively resolve type alias chains
+        while (t && t->isName()) {
+            TypePtr next = static_cast<const NameType*>(t)->getBinding();
+            if (!next) break;
+            t = next.get();
+        }
+        return t;
+    }
+
+    bool equals(const Type* other) const override {
+        const Type* act = actual();
         if (act == this) return false;  // Unresolved type
         return act->equals(other->actual());
     }
 
-    std::string toString() const override {
-        if (binding_) {
-            return name_ + " (= " + binding_->toString() + ")";
-        }
-        return name_;
-    }
+    std::string toString() const override;
 };
 
 // Function type
@@ -223,15 +228,7 @@ public:
     const std::vector<TypePtr>& getParamTypes() const { return paramTypes_; }
     TypePtr getReturnType() const { return returnType_; }
 
-    std::string toString() const override {
-        std::string result = "(";
-        for (size_t i = 0; i < paramTypes_.size(); ++i) {
-            if (i > 0) result += ", ";
-            result += paramTypes_[i]->toString();
-        }
-        result += ") -> " + returnType_->toString();
-        return result;
-    }
+    std::string toString() const override;
 };
 
 // Type context - manages all type instances

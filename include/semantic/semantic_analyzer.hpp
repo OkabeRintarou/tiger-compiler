@@ -70,6 +70,9 @@ private:
     TypePtr checkAssignable(TypePtr varType, TypePtr exprType, const std::string& varName, int line,
                             int column);
     TypePtr translateType(tiger::Type* astType);
+
+    // Process type declarations in two phases for mutual recursion
+    void processTypeDeclarations(const std::vector<std::shared_ptr<TypeDecl>>& typeDecls);
 };
 
 }  // namespace semantic

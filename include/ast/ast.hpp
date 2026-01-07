@@ -142,6 +142,10 @@ public:
     Kind kind;
     explicit Decl(Kind k) : kind(k) {}
 
+    bool isTypeDecl() const { return kind == Kind::TYPE; }
+    bool isVarDecl() const { return kind == Kind::VAR; }
+    bool isFunctionDecl() const { return kind == Kind::FUNCTION; }
+
     template <typename ResultType = void>
     ResultType accept(Visitor<ResultType>& visitor);
 };
