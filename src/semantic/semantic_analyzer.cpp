@@ -113,8 +113,9 @@ TypePtr SemanticAnalyzer::visit(ast::VarExpr* expr) {
     if (expr->var_kind == ast::VarExpr::VarKind::SUBSCRIPT) {
         // First, get the type of the left side (the array variable)
         TypePtr varType = expr->var->accept(*this);
+        const ArrayType* arrayType = varType->asArray();
 
-        if (!varType || !varType->isArray()) {
+        if (arrayType == nullptr) {
             error("Array subscript on non-array type", 0, 0);
         }
 
@@ -122,12 +123,6 @@ TypePtr SemanticAnalyzer::visit(ast::VarExpr* expr) {
         TypePtr indexType = expr->index->accept(*this);
         checkTypeEquals(env_.getTypeContext().getIntType(), indexType,
                         "Array index must be integer", 0, 0);
-
-        // Return element type
-        const ArrayType* arrayType = varType->asArray();
-        if (!arrayType) {
-            error("Array subscript on non-array type", 0, 0);
-        }
 
         return arrayType->getElementType();
     }
@@ -304,6 +299,7 @@ TypePtr SemanticAnalyzer::visit(ast::AssignExpr* expr) {
     }
 
     // Check type compatibility
+    // TODO: change "assignment" to correct variable name
     checkAssignable(varType, exprType, "assignment", 0, 0);
 
     return env_.getTypeContext().getVoidType();
