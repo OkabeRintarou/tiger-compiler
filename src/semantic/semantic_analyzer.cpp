@@ -321,11 +321,14 @@ TypePtr SemanticAnalyzer::visit(ast::IfExpr* expr) {
     // If else clause exists, check it
     if (expr->else_clause) {
         TypePtr elseType = expr->else_clause->accept(*this);
-        // then and else don't need to match in Tiger
-        return elseType;
+        // then and else must have the same type
+        checkTypeEquals(thenType, elseType, "If-then-else branches must have the same type", 0, 0);
+        return thenType;
     }
 
-    // No else clause - returns void
+    // No else clause - then clause must produce no value (void)
+    checkTypeEquals(env_.getTypeContext().getVoidType(), thenType,
+                    "If-then without else must produce no value", 0, 0);
     return env_.getTypeContext().getVoidType();
 }
 
