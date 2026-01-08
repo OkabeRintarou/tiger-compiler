@@ -9,6 +9,7 @@
 #include "lexer/token.hpp"
 
 namespace tiger {
+using namespace ast;
 
 class Parser {
 public:

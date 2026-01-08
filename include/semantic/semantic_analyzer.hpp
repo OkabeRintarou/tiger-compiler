@@ -26,38 +26,38 @@ private:
 
 // Semantic analyzer visitor
 // Performs type checking and symbol table management
-class SemanticAnalyzer : public Visitor<TypePtr> {
+class SemanticAnalyzer : public ast::Visitor<TypePtr> {
 public:
     explicit SemanticAnalyzer(TypeContext& typeCtx);
 
-    TypePtr analyze(ExprPtr expr);
+    TypePtr analyze(ast::ExprPtr expr);
 
     // Expression visitors - return the type of the expression
-    TypePtr visit(VarExpr* expr) override;
-    TypePtr visit(NilExpr* expr) override;
-    TypePtr visit(IntExpr* expr) override;
-    TypePtr visit(StringExpr* expr) override;
-    TypePtr visit(CallExpr* expr) override;
-    TypePtr visit(OpExpr* expr) override;
-    TypePtr visit(RecordExpr* expr) override;
-    TypePtr visit(ArrayExpr* expr) override;
-    TypePtr visit(AssignExpr* expr) override;
-    TypePtr visit(IfExpr* expr) override;
-    TypePtr visit(WhileExpr* expr) override;
-    TypePtr visit(ForExpr* expr) override;
-    TypePtr visit(BreakExpr* expr) override;
-    TypePtr visit(LetExpr* expr) override;
-    TypePtr visit(SeqExpr* expr) override;
+    TypePtr visit(ast::VarExpr* expr) override;
+    TypePtr visit(ast::NilExpr* expr) override;
+    TypePtr visit(ast::IntExpr* expr) override;
+    TypePtr visit(ast::StringExpr* expr) override;
+    TypePtr visit(ast::CallExpr* expr) override;
+    TypePtr visit(ast::OpExpr* expr) override;
+    TypePtr visit(ast::RecordExpr* expr) override;
+    TypePtr visit(ast::ArrayExpr* expr) override;
+    TypePtr visit(ast::AssignExpr* expr) override;
+    TypePtr visit(ast::IfExpr* expr) override;
+    TypePtr visit(ast::WhileExpr* expr) override;
+    TypePtr visit(ast::ForExpr* expr) override;
+    TypePtr visit(ast::BreakExpr* expr) override;
+    TypePtr visit(ast::LetExpr* expr) override;
+    TypePtr visit(ast::SeqExpr* expr) override;
 
     // Declaration visitors - return void (declarations don't have types)
-    TypePtr visit(TypeDecl* decl) override;
-    TypePtr visit(VarDecl* decl) override;
-    TypePtr visit(FunctionDecl* decl) override;
+    TypePtr visit(ast::TypeDecl* decl) override;
+    TypePtr visit(ast::VarDecl* decl) override;
+    TypePtr visit(ast::FunctionDecl* decl) override;
 
     // Type visitors (AST type nodes, not semantic types)
-    TypePtr visit(tiger::NameType*) override { return nullptr; }
-    TypePtr visit(tiger::RecordType*) override { return nullptr; }
-    TypePtr visit(tiger::ArrayType*) override { return nullptr; }
+    TypePtr visit(ast::NameType*) override { return nullptr; }
+    TypePtr visit(ast::RecordType*) override { return nullptr; }
+    TypePtr visit(ast::ArrayType*) override { return nullptr; }
 
 private:
     Environment env_;
@@ -69,10 +69,10 @@ private:
                             int column);
     TypePtr checkAssignable(TypePtr varType, TypePtr exprType, const std::string& varName, int line,
                             int column);
-    TypePtr translateType(tiger::Type* astType);
+    TypePtr translateType(ast::Type* astType);
 
     // Process type declarations in two phases for mutual recursion
-    void processTypeDeclarations(const std::vector<std::shared_ptr<TypeDecl>>& typeDecls);
+    void processTypeDeclarations(const std::vector<std::shared_ptr<ast::TypeDecl>>& typeDecls);
 };
 
 }  // namespace semantic

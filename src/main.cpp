@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Lexical analysis completed: " << tokens.size() << " tokens" << std::endl;
 
         tiger::Parser parser(tokens);
-        tiger::ExprPtr ast = parser.parse();
+        tiger::ast::ExprPtr ast = parser.parse();
 
         std::cout << "Parsing completed successfully" << std::endl;
 

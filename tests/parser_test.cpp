@@ -10,6 +10,7 @@
 
 namespace tiger {
 namespace test {
+using namespace tiger::ast;
 
 std::string readFile(const std::string& filename) {
     std::ifstream file(filename);

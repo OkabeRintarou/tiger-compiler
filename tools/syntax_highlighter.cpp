@@ -10,6 +10,7 @@
 
 namespace tiger {
 namespace tools {
+using namespace tiger::ast;
 
 /**
  * @brief Syntax highlighter using visitor pattern for terminal output

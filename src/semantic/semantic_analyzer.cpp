@@ -11,7 +11,7 @@ namespace semantic {
 SemanticAnalyzer::SemanticAnalyzer(TypeContext& typeCtx)
     : env_(typeCtx), currentReturnType_(nullptr) {}
 
-TypePtr SemanticAnalyzer::analyze(ExprPtr expr) { return expr->accept(*this); }
+TypePtr SemanticAnalyzer::analyze(ast::ExprPtr expr) { return expr->accept(*this); }
 
 void SemanticAnalyzer::error(const std::string& msg, int line, int column) {
     throw SemanticError(msg, line, column);
@@ -41,13 +41,13 @@ TypePtr SemanticAnalyzer::checkAssignable(TypePtr varType, TypePtr exprType,
     return varType;
 }
 
-TypePtr SemanticAnalyzer::translateType(tiger::Type* astType) {
+TypePtr SemanticAnalyzer::translateType(ast::Type* astType) {
     if (!astType) {
         return nullptr;
     }
 
     // Handle NameType - look up in type environment
-    if (auto nameType = dynamic_cast<tiger::NameType*>(astType)) {
+    if (auto nameType = dynamic_cast<ast::NameType*>(astType)) {
         TypePtr type = env_.lookupType(nameType->name);
         if (!type) {
             error("Undefined type: " + nameType->name, 0, 0);
@@ -56,7 +56,7 @@ TypePtr SemanticAnalyzer::translateType(tiger::Type* astType) {
     }
 
     // Handle RecordType - create new record type
-    if (auto recordType = dynamic_cast<tiger::RecordType*>(astType)) {
+    if (auto recordType = dynamic_cast<ast::RecordType*>(astType)) {
         auto newRecord = env_.getTypeContext().createRecordType();
 
         for (const auto& field : recordType->fields) {
@@ -72,7 +72,7 @@ TypePtr SemanticAnalyzer::translateType(tiger::Type* astType) {
     }
 
     // Handle ArrayType - create new array type
-    if (auto arrayType = dynamic_cast<tiger::ArrayType*>(astType)) {
+    if (auto arrayType = dynamic_cast<ast::ArrayType*>(astType)) {
         TypePtr elementType = env_.lookupType(arrayType->element_type);
         if (!elementType) {
             error("Undefined array element type: " + arrayType->element_type, 0, 0);
@@ -85,9 +85,9 @@ TypePtr SemanticAnalyzer::translateType(tiger::Type* astType) {
 
 // ========== Expression Visitors ==========
 
-TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::VarExpr* expr) {
     // Handle field access (e.g., record.field)
-    if (expr->var_kind == VarExpr::VarKind::FIELD) {
+    if (expr->var_kind == ast::VarExpr::VarKind::FIELD) {
         // First, get the type of the left side (the record variable)
         TypePtr varType = expr->var->accept(*this);
 
@@ -110,7 +110,7 @@ TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
     }
 
     // Handle array subscript (e.g., array[index])
-    if (expr->var_kind == VarExpr::VarKind::SUBSCRIPT) {
+    if (expr->var_kind == ast::VarExpr::VarKind::SUBSCRIPT) {
         // First, get the type of the left side (the array variable)
         TypePtr varType = expr->var->accept(*this);
 
@@ -146,13 +146,13 @@ TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
     return varEntry->getType();
 }
 
-TypePtr SemanticAnalyzer::visit(NilExpr*) { return env_.getTypeContext().getNilType(); }
+TypePtr SemanticAnalyzer::visit(ast::NilExpr*) { return env_.getTypeContext().getNilType(); }
 
-TypePtr SemanticAnalyzer::visit(IntExpr*) { return env_.getTypeContext().getIntType(); }
+TypePtr SemanticAnalyzer::visit(ast::IntExpr*) { return env_.getTypeContext().getIntType(); }
 
-TypePtr SemanticAnalyzer::visit(StringExpr*) { return env_.getTypeContext().getStringType(); }
+TypePtr SemanticAnalyzer::visit(ast::StringExpr*) { return env_.getTypeContext().getStringType(); }
 
-TypePtr SemanticAnalyzer::visit(CallExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::CallExpr* expr) {
     // Look up function
     FuncEntry* funcEntry = env_.lookupFunc(expr->func);
     if (!funcEntry) {
@@ -183,14 +183,14 @@ TypePtr SemanticAnalyzer::visit(CallExpr* expr) {
     return funcEntry->getReturnType();
 }
 
-TypePtr SemanticAnalyzer::visit(OpExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::OpExpr* expr) {
     TypePtr leftType = expr->left->accept(*this);
     TypePtr rightType = expr->right->accept(*this);
     auto& typeCtx = env_.getTypeContext();
 
     // Arithmetic operators: +, -, *, /
-    if (expr->oper == OpExpr::Op::PLUS || expr->oper == OpExpr::Op::MINUS ||
-        expr->oper == OpExpr::Op::TIMES || expr->oper == OpExpr::Op::DIVIDE) {
+    if (expr->oper == ast::OpExpr::Op::PLUS || expr->oper == ast::OpExpr::Op::MINUS ||
+        expr->oper == ast::OpExpr::Op::TIMES || expr->oper == ast::OpExpr::Op::DIVIDE) {
         checkTypeEquals(typeCtx.getIntType(), leftType,
                         "Left operand of arithmetic operator must be int", 0, 0);
         checkTypeEquals(typeCtx.getIntType(), rightType,
@@ -199,16 +199,16 @@ TypePtr SemanticAnalyzer::visit(OpExpr* expr) {
     }
 
     // Comparison operators: =, <>, <, >, <=, >=
-    if (expr->oper == OpExpr::Op::EQ || expr->oper == OpExpr::Op::NEQ ||
-        expr->oper == OpExpr::Op::LT || expr->oper == OpExpr::Op::GT ||
-        expr->oper == OpExpr::Op::LE || expr->oper == OpExpr::Op::GE) {
+    if (expr->oper == ast::OpExpr::Op::EQ || expr->oper == ast::OpExpr::Op::NEQ ||
+        expr->oper == ast::OpExpr::Op::LT || expr->oper == ast::OpExpr::Op::GT ||
+        expr->oper == ast::OpExpr::Op::LE || expr->oper == ast::OpExpr::Op::GE) {
         // Both operands must have the same type
         checkTypeEquals(leftType, rightType, "Comparison operands must have the same type", 0, 0);
         return typeCtx.getIntType();
     }
 
     // Logical operators: &, |
-    if (expr->oper == OpExpr::Op::AND || expr->oper == OpExpr::Op::OR) {
+    if (expr->oper == ast::OpExpr::Op::AND || expr->oper == ast::OpExpr::Op::OR) {
         checkTypeEquals(typeCtx.getIntType(), leftType,
                         "Left operand of logical operator must be int", 0, 0);
         checkTypeEquals(typeCtx.getIntType(), rightType,
@@ -219,7 +219,7 @@ TypePtr SemanticAnalyzer::visit(OpExpr* expr) {
     return typeCtx.getIntType();
 }
 
-TypePtr SemanticAnalyzer::visit(RecordExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::RecordExpr* expr) {
     // Look up record type
     TypePtr type = env_.lookupType(expr->type_id);
     if (!type) {
@@ -258,7 +258,7 @@ TypePtr SemanticAnalyzer::visit(RecordExpr* expr) {
     return type;
 }
 
-TypePtr SemanticAnalyzer::visit(ArrayExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::ArrayExpr* expr) {
     // Look up array type
     TypePtr type = env_.lookupType(expr->type_id);
     if (!type) {
@@ -284,7 +284,7 @@ TypePtr SemanticAnalyzer::visit(ArrayExpr* expr) {
     return type;
 }
 
-TypePtr SemanticAnalyzer::visit(AssignExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::AssignExpr* expr) {
     // Get variable type (also validates lvalue)
     TypePtr varType = expr->var->accept(*this);
 
@@ -294,8 +294,8 @@ TypePtr SemanticAnalyzer::visit(AssignExpr* expr) {
     // For field access, varType is the field type
     // For array subscript, varType is the element type
     // For simple variable, varType is the variable type
-    if (auto varExpr = dynamic_cast<VarExpr*>(expr->var.get())) {
-        if (varExpr->var_kind == VarExpr::VarKind::SIMPLE) {
+    if (auto varExpr = dynamic_cast<ast::VarExpr*>(expr->var.get())) {
+        if (varExpr->var_kind == ast::VarExpr::VarKind::SIMPLE) {
             VarEntry* varEntry = env_.lookupVar(varExpr->name);
             if (varEntry && varEntry->isReadOnly()) {
                 error("Cannot assign to loop variable '" + varExpr->name + "'", 0, 0);
@@ -309,7 +309,7 @@ TypePtr SemanticAnalyzer::visit(AssignExpr* expr) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(IfExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::IfExpr* expr) {
     // Test condition must be int
     TypePtr testType = expr->test->accept(*this);
     checkTypeEquals(env_.getTypeContext().getIntType(), testType, "If condition must be integer", 0,
@@ -329,7 +329,7 @@ TypePtr SemanticAnalyzer::visit(IfExpr* expr) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(WhileExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::WhileExpr* expr) {
     // Test condition must be int
     TypePtr testType = expr->test->accept(*this);
     checkTypeEquals(env_.getTypeContext().getIntType(), testType, "While condition must be integer",
@@ -347,7 +347,7 @@ TypePtr SemanticAnalyzer::visit(WhileExpr* expr) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(ForExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::ForExpr* expr) {
     // Check low and high bounds (must be int)
     TypePtr loType = expr->lo->accept(*this);
     TypePtr hiType = expr->hi->accept(*this);
@@ -377,7 +377,7 @@ TypePtr SemanticAnalyzer::visit(ForExpr* expr) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(BreakExpr*) {
+TypePtr SemanticAnalyzer::visit(ast::BreakExpr*) {
     // Break must be inside a loop
     if (!env_.inLoop()) {
         error("break statement must be inside a loop", 0, 0);
@@ -386,7 +386,7 @@ TypePtr SemanticAnalyzer::visit(BreakExpr*) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(LetExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
     // Enter new scope for declarations
     env_.beginScope();
 
@@ -395,10 +395,10 @@ TypePtr SemanticAnalyzer::visit(LetExpr* expr) {
     size_t i = 0;
     while (i < expr->decls.size()) {
         // Find a consecutive group of type declarations
-        std::vector<std::shared_ptr<TypeDecl>> typeGroup;
+        std::vector<std::shared_ptr<ast::TypeDecl>> typeGroup;
         while (i < expr->decls.size()) {
             if (expr->decls[i]->isTypeDecl()) {
-                auto typeDecl = std::dynamic_pointer_cast<TypeDecl>(expr->decls[i]);
+                auto typeDecl = std::dynamic_pointer_cast<ast::TypeDecl>(expr->decls[i]);
                 typeGroup.emplace_back(std::move(typeDecl));
                 i++;
             } else {
@@ -433,7 +433,7 @@ TypePtr SemanticAnalyzer::visit(LetExpr* expr) {
 }
 
 void SemanticAnalyzer::processTypeDeclarations(
-    const std::vector<std::shared_ptr<TypeDecl>>& typeDecls) {
+    const std::vector<std::shared_ptr<ast::TypeDecl>>& typeDecls) {
     auto& ctx = env_.getTypeContext();
 
     // Phase 1: Create NameType for all type declarations and register them
@@ -489,7 +489,7 @@ void SemanticAnalyzer::processTypeDeclarations(
     }
 }
 
-TypePtr SemanticAnalyzer::visit(SeqExpr* expr) {
+TypePtr SemanticAnalyzer::visit(ast::SeqExpr* expr) {
     TypePtr lastType = env_.getTypeContext().getVoidType();
     for (const auto& e : expr->exprs) {
         lastType = e->accept(*this);
@@ -499,9 +499,9 @@ TypePtr SemanticAnalyzer::visit(SeqExpr* expr) {
 
 // ========== Declaration Visitors ==========
 
-TypePtr SemanticAnalyzer::visit(TypeDecl*) { return nullptr; }
+TypePtr SemanticAnalyzer::visit(ast::TypeDecl*) { return nullptr; }
 
-TypePtr SemanticAnalyzer::visit(VarDecl* decl) {
+TypePtr SemanticAnalyzer::visit(ast::VarDecl* decl) {
     // Check initializer expression
     TypePtr initType = decl->init->accept(*this);
 
@@ -521,7 +521,7 @@ TypePtr SemanticAnalyzer::visit(VarDecl* decl) {
     return nullptr;
 }
 
-TypePtr SemanticAnalyzer::visit(FunctionDecl* decl) {
+TypePtr SemanticAnalyzer::visit(ast::FunctionDecl* decl) {
     // Translate parameter types
     std::vector<TypePtr> paramTypes;
     for (const auto& param : decl->params) {

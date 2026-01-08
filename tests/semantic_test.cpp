@@ -11,6 +11,7 @@
 
 namespace tiger {
 namespace test {
+using namespace tiger::ast;
 
 using semantic::SemanticAnalyzer;
 using semantic::SemanticError;

@@ -3,6 +3,7 @@
 #include <sstream>
 
 namespace tiger {
+namespace ast {
 
 // ========== Utility Functions ==========
 
@@ -179,4 +180,5 @@ std::string SeqExpr::toString() const {
     return oss.str();
 }
 
+}  // namespace ast
 }  // namespace tiger

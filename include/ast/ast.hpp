@@ -9,6 +9,7 @@
 #include "common/common.hpp"
 
 namespace tiger {
+namespace ast {
 
 // Forward declarations
 class Expr;
@@ -408,6 +409,7 @@ ResultType Decl::accept(Visitor<ResultType>& visitor) {
     }
 }
 
+}  // namespace ast
 }  // namespace tiger
 
 #endif  // TIGER_AST_HPP

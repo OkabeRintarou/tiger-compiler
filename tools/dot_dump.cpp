@@ -9,6 +9,7 @@
 #include "parser/parser.hpp"
 
 using namespace tiger;
+using namespace tiger::ast;
 
 std::string readFile(const std::string& filename) {
     std::ifstream file(filename);
