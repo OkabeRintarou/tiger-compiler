@@ -449,9 +449,16 @@ TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
 
 void SemanticAnalyzer::processTypeDeclarations(const std::vector<ast::TypeDeclPtr>& typeDecls) {
     auto& ctx = env_.getTypeContext();
+    std::unordered_set<std::string> checkedNames;
 
     // Phase 1: Create NameType for all type declarations and register them
     for (const auto& typeDecl : typeDecls) {
+        if (checkedNames.find(typeDecl->name) != checkedNames.end())
+            error(std::string("Duplicated type declaration with the same name '") + typeDecl->name +
+                      "'",
+                  0, 0);
+        checkedNames.insert(typeDecl->name);
+
         TypePtr nameType = ctx.createNameType(typeDecl->name);
         env_.enterType(typeDecl->name, nameType);
     }
@@ -466,7 +473,7 @@ void SemanticAnalyzer::processTypeDeclarations(const std::vector<ast::TypeDeclPt
     }
 
     // Phase 3: Check cycle of mutually recursive types
-    std::unordered_set<std::string> checkedNames;
+    checkedNames.clear();
     std::unordered_set<std::string> deps;
     std::vector<std::string> cycle;
     for (const auto& typeDecl : typeDecls) {
@@ -505,9 +512,16 @@ void SemanticAnalyzer::processTypeDeclarations(const std::vector<ast::TypeDeclPt
 
 void SemanticAnalyzer::processFunctionDeclarations(
     const std::vector<ast::FunctionDeclPtr>& funcDecls) {
+    std::unordered_set<std::string> funcNames;
     // Phase 1: Enter all function headers into the environment
     // This allows mutual recursion between functions in the same group
     for (const auto& funcDecl : funcDecls) {
+        if (funcNames.find(funcDecl->name) != funcNames.end())
+            error(std::string("Duplicated function declaration with the same name '") +
+                      funcDecl->name + "'",
+                  0, 0);
+        funcNames.insert(funcDecl->name);
+
         // Translate parameter types
         std::vector<TypePtr> paramTypes;
         for (const auto& param : funcDecl->params) {
