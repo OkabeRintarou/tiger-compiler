@@ -565,11 +565,8 @@ void SemanticAnalyzer::processFunctionDeclarations(
         // Analyze function body
         TypePtr bodyType = funcDecl->body->accept(*this);
 
-        // Check return type if function has non-void return type
-        if (!currentReturnType_->isVoid()) {
-            checkTypeEquals(currentReturnType_, bodyType, "Function body return type mismatch", 0,
-                            0);
-        }
+        // Check that body type matches declared return type
+        checkTypeEquals(currentReturnType_, bodyType, "Function body return type mismatch", 0, 0);
 
         // Restore return type
         currentReturnType_ = savedReturnType;
