@@ -392,49 +392,41 @@ TypePtr SemanticAnalyzer::visit(ast::BreakExpr*) {
 
     return env_.getTypeContext().getVoidType();
 }
-
 TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
     // Enter new scope for declarations
     env_.beginScope();
 
     // Process declarations in groups
     // Type declarations can only be mutually recursive if they are consecutive
+    // Function declarations can only be mutually recursive if they are consecutive
+    // Type and function declarations interrupt each other's batches
     size_t i = 0;
     while (i < expr->decls.size()) {
-        // Find a consecutive group of type declarations
-        std::vector<ast::TypeDeclPtr> typeGroup;
-        std::vector<ast::FunctionDeclPtr> functionGroup;
-        while (i < expr->decls.size()) {
-            if (expr->decls[i]->isTypeDecl()) {
+        if (expr->decls[i]->isTypeDecl()) {
+            // Collect consecutive type declarations
+            std::vector<ast::TypeDeclPtr> typeGroup;
+            while (i < expr->decls.size() && expr->decls[i]->isTypeDecl()) {
                 auto typeDecl = std::dynamic_pointer_cast<ast::TypeDecl>(expr->decls[i]);
                 typeGroup.emplace_back(std::move(typeDecl));
                 i++;
-            } else if (expr->decls[i]->isFunctionDecl()) {
+            }
+            processTypeDeclarations(typeGroup);
+        } else if (expr->decls[i]->isFunctionDecl()) {
+            // Collect consecutive function declarations
+            std::vector<ast::FunctionDeclPtr> functionGroup;
+            while (i < expr->decls.size() && expr->decls[i]->isFunctionDecl()) {
                 auto funcDecl = std::dynamic_pointer_cast<ast::FunctionDecl>(expr->decls[i]);
                 functionGroup.emplace_back(std::move(funcDecl));
                 i++;
-            } else {
-                break;
             }
-        }
-
-        // Process the type declaration group
-        if (!typeGroup.empty()) {
-            processTypeDeclarations(typeGroup);
-        }
-        if (!functionGroup.empty()) {
             processFunctionDeclarations(functionGroup);
-        }
-
-        // Process non-type/non-function declarations
-        while (i < expr->decls.size()) {
-            if (expr->decls[i]->isTypeDecl() || expr->decls[i]->isFunctionDecl()) {
-                break;  // Type declaration, start a new group
-            }
+        } else {
+            // Process variable declaration
             expr->decls[i]->accept(*this);
             i++;
         }
     }
+
     // Process body expressions
     TypePtr lastType = env_.getTypeContext().getVoidType();
     for (const auto& e : expr->body) {
