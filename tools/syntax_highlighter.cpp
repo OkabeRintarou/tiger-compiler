@@ -124,7 +124,7 @@ std::string SyntaxHighlighter::visit(VarExpr* expr) {
     return result.str();
 }
 
-std::string SyntaxHighlighter::visit(NilExpr* expr) { return keyword("nil"); }
+std::string SyntaxHighlighter::visit(NilExpr*) { return keyword("nil"); }
 
 std::string SyntaxHighlighter::visit(IntExpr* expr) { return literal(std::to_string(expr->value)); }
 
@@ -212,7 +212,7 @@ std::string SyntaxHighlighter::visit(ForExpr* expr) {
     return result.str();
 }
 
-std::string SyntaxHighlighter::visit(BreakExpr* expr) { return keyword("break"); }
+std::string SyntaxHighlighter::visit(BreakExpr*) { return keyword("break"); }
 
 std::string SyntaxHighlighter::visit(LetExpr* expr) {
     std::ostringstream result;

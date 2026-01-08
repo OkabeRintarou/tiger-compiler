@@ -146,11 +146,11 @@ TypePtr SemanticAnalyzer::visit(VarExpr* expr) {
     return varEntry->getType();
 }
 
-TypePtr SemanticAnalyzer::visit(NilExpr* expr) { return env_.getTypeContext().getNilType(); }
+TypePtr SemanticAnalyzer::visit(NilExpr*) { return env_.getTypeContext().getNilType(); }
 
-TypePtr SemanticAnalyzer::visit(IntExpr* expr) { return env_.getTypeContext().getIntType(); }
+TypePtr SemanticAnalyzer::visit(IntExpr*) { return env_.getTypeContext().getIntType(); }
 
-TypePtr SemanticAnalyzer::visit(StringExpr* expr) { return env_.getTypeContext().getStringType(); }
+TypePtr SemanticAnalyzer::visit(StringExpr*) { return env_.getTypeContext().getStringType(); }
 
 TypePtr SemanticAnalyzer::visit(CallExpr* expr) {
     // Look up function
@@ -377,7 +377,7 @@ TypePtr SemanticAnalyzer::visit(ForExpr* expr) {
     return env_.getTypeContext().getVoidType();
 }
 
-TypePtr SemanticAnalyzer::visit(BreakExpr* expr) {
+TypePtr SemanticAnalyzer::visit(BreakExpr*) {
     // Break must be inside a loop
     if (!env_.inLoop()) {
         error("break statement must be inside a loop", 0, 0);
@@ -499,7 +499,7 @@ TypePtr SemanticAnalyzer::visit(SeqExpr* expr) {
 
 // ========== Declaration Visitors ==========
 
-TypePtr SemanticAnalyzer::visit(TypeDecl* decl) { return nullptr; }
+TypePtr SemanticAnalyzer::visit(TypeDecl*) { return nullptr; }
 
 TypePtr SemanticAnalyzer::visit(VarDecl* decl) {
     // Check initializer expression

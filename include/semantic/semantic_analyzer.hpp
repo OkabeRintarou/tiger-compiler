@@ -55,9 +55,9 @@ public:
     TypePtr visit(FunctionDecl* decl) override;
 
     // Type visitors (AST type nodes, not semantic types)
-    TypePtr visit(tiger::NameType* type) override { return nullptr; }
-    TypePtr visit(tiger::RecordType* type) override { return nullptr; }
-    TypePtr visit(tiger::ArrayType* type) override { return nullptr; }
+    TypePtr visit(tiger::NameType*) override { return nullptr; }
+    TypePtr visit(tiger::RecordType*) override { return nullptr; }
+    TypePtr visit(tiger::ArrayType*) override { return nullptr; }
 
 private:
     Environment env_;
