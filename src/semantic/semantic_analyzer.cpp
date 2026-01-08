@@ -344,6 +344,10 @@ TypePtr SemanticAnalyzer::visit(ast::WhileExpr* expr) {
     // Check body
     TypePtr bodyType = expr->body->accept(*this);
 
+    // Body must produce no value (void)
+    checkTypeEquals(env_.getTypeContext().getVoidType(), bodyType,
+                    "While loop body must produce no value", 0, 0);
+
     // Exit loop context
     env_.exitLoop();
 
