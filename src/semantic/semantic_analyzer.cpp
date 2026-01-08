@@ -592,6 +592,13 @@ TypePtr SemanticAnalyzer::visit(ast::VarDecl* decl) {
     // Check initializer expression
     TypePtr initType = decl->init->accept(*this);
 
+    // nil must be constrained by a record type
+    if (initType->isNil() && decl->type_id.empty()) {
+        error(
+            "nil must be constrained by a record type in variable declaration '" + decl->name + "'",
+            0, 0);
+    }
+
     // If type annotation provided, check it matches
     TypePtr varType = initType;
     if (!decl->type_id.empty()) {
