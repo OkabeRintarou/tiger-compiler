@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <iostream>
 #include <iterator>
 
 #include "ast/ast.hpp"
@@ -48,6 +49,7 @@ protected:
             analyze(source);
             return false;
         } catch (const SemanticError& e) {
+            std::cout << "\t\tExpectedError: " << e.what() << std::endl;
             return true;
         }
     }
@@ -58,6 +60,7 @@ protected:
             analyzeFile(filename);
             return false;
         } catch (const SemanticError& e) {
+            std::cout << "\t\tExpectedError: " << e.what() << std::endl;
             return true;
         }
     }
@@ -204,11 +207,32 @@ TEST_F(SemanticTest, Test3_RecordType) {
     EXPECT_TRUE(type->actual()->isRecord());
 }
 
+// Test examples/test4.tig - recursive function
+TEST_F(SemanticTest, Test4_RecursiveFunction) {
+    TypePtr type = analyzeFile("examples/test4.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isInt());
+}
+
 // Test examples/test5.tig - recursive types
 TEST_F(SemanticTest, Test5_RecursiveTypes) {
     TypePtr type = analyzeFile("examples/test5.tig");
     ASSERT_NE(type, nullptr);
     EXPECT_TRUE(type->actual()->isRecord());
+}
+
+// Test examples/test6.tig - mutually recursive procedures
+TEST_F(SemanticTest, Test6_MutuallyRecursiveProcedures) {
+    TypePtr type = analyzeFile("examples/test6.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isVoid());
+}
+
+// Test examples/test7.tig - mutually recursive functions
+TEST_F(SemanticTest, Test7_MutuallyRecursiveFunctions) {
+    TypePtr type = analyzeFile("examples/test7.tig");
+    ASSERT_NE(type, nullptr);
+    EXPECT_TRUE(type->actual()->isInt());
 }
 
 // Test examples/test16.tig - non-productive type cycle (should fail)
@@ -220,6 +244,9 @@ TEST_F(SemanticTest, Test16_NonProductiveTypeCycle) {
 TEST_F(SemanticTest, Test17_InterruptedTypeDeclarations) {
     EXPECT_TRUE(hasErrorFile("examples/test17.tig"));
 }
+
+// Test examples/test19.tig - scope error
+TEST_F(SemanticTest, Test19_ScopeError) { EXPECT_TRUE(hasErrorFile("examples/test19.tig")); }
 
 // Test array creation
 TEST_F(SemanticTest, ArrayCreation) {

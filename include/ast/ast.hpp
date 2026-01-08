@@ -41,6 +41,8 @@ class ArrayType;
 // Type aliases
 using ExprPtr = std::shared_ptr<Expr>;
 using DeclPtr = std::shared_ptr<Decl>;
+using TypeDeclPtr = std::shared_ptr<TypeDecl>;
+using FunctionDeclPtr = std::shared_ptr<FunctionDecl>;
 using TypePtr = std::shared_ptr<Type>;
 using FieldPtr = std::shared_ptr<Field>;
 using ExprList = std::vector<ExprPtr>;

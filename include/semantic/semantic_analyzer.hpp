@@ -72,7 +72,9 @@ private:
     TypePtr translateType(ast::Type* astType);
 
     // Process type declarations in two phases for mutual recursion
-    void processTypeDeclarations(const std::vector<std::shared_ptr<ast::TypeDecl>>& typeDecls);
+    void processTypeDeclarations(const std::vector<ast::TypeDeclPtr>& typeDecls);
+
+    void processFunctionDeclarations(const std::vector<ast::FunctionDeclPtr>& funcDecls);
 };
 
 }  // namespace semantic

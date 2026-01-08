@@ -395,11 +395,16 @@ TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
     size_t i = 0;
     while (i < expr->decls.size()) {
         // Find a consecutive group of type declarations
-        std::vector<std::shared_ptr<ast::TypeDecl>> typeGroup;
+        std::vector<ast::TypeDeclPtr> typeGroup;
+        std::vector<ast::FunctionDeclPtr> functionGroup;
         while (i < expr->decls.size()) {
             if (expr->decls[i]->isTypeDecl()) {
                 auto typeDecl = std::dynamic_pointer_cast<ast::TypeDecl>(expr->decls[i]);
                 typeGroup.emplace_back(std::move(typeDecl));
+                i++;
+            } else if (expr->decls[i]->isFunctionDecl()) {
+                auto funcDecl = std::dynamic_pointer_cast<ast::FunctionDecl>(expr->decls[i]);
+                functionGroup.emplace_back(std::move(funcDecl));
                 i++;
             } else {
                 break;
@@ -410,10 +415,13 @@ TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
         if (!typeGroup.empty()) {
             processTypeDeclarations(typeGroup);
         }
+        if (!functionGroup.empty()) {
+            processFunctionDeclarations(functionGroup);
+        }
 
-        // Process non-type declarations
+        // Process non-type/non-function declarations
         while (i < expr->decls.size()) {
-            if (expr->decls[i]->isTypeDecl()) {
+            if (expr->decls[i]->isTypeDecl() || expr->decls[i]->isFunctionDecl()) {
                 break;  // Type declaration, start a new group
             }
             expr->decls[i]->accept(*this);
@@ -432,8 +440,7 @@ TypePtr SemanticAnalyzer::visit(ast::LetExpr* expr) {
     return lastType;
 }
 
-void SemanticAnalyzer::processTypeDeclarations(
-    const std::vector<std::shared_ptr<ast::TypeDecl>>& typeDecls) {
+void SemanticAnalyzer::processTypeDeclarations(const std::vector<ast::TypeDeclPtr>& typeDecls) {
     auto& ctx = env_.getTypeContext();
 
     // Phase 1: Create NameType for all type declarations and register them
@@ -489,6 +496,68 @@ void SemanticAnalyzer::processTypeDeclarations(
     }
 }
 
+void SemanticAnalyzer::processFunctionDeclarations(
+    const std::vector<ast::FunctionDeclPtr>& funcDecls) {
+    // Phase 1: Enter all function headers into the environment
+    // This allows mutual recursion between functions in the same group
+    for (const auto& funcDecl : funcDecls) {
+        // Translate parameter types
+        std::vector<TypePtr> paramTypes;
+        for (const auto& param : funcDecl->params) {
+            TypePtr paramType = env_.lookupType(param->type_id);
+            if (!paramType) {
+                error("Undefined parameter type: " + param->type_id, 0, 0);
+            }
+            paramTypes.push_back(paramType);
+        }
+
+        // Translate return type (if specified)
+        TypePtr returnType = env_.getTypeContext().getVoidType();
+        if (!funcDecl->result_type.empty()) {
+            returnType = env_.lookupType(funcDecl->result_type);
+            if (!returnType) {
+                error("Undefined return type: " + funcDecl->result_type, 0, 0);
+            }
+        }
+
+        // Enter function into environment
+        env_.enterFunc(funcDecl->name, paramTypes, returnType);
+    }
+
+    // Phase 2: Process function bodies
+    for (const auto& funcDecl : funcDecls) {
+        FuncEntry* entry = env_.lookupFunc(funcDecl->name);
+
+        // Enter new scope for function body
+        env_.beginScope();
+
+        // Save and set current return type
+        TypePtr savedReturnType = currentReturnType_;
+        currentReturnType_ = entry->getReturnType();
+
+        // Enter parameters into environment
+        const auto& paramTypes = entry->getParamTypes();
+        for (size_t i = 0; i < funcDecl->params.size(); ++i) {
+            env_.enterVar(funcDecl->params[i]->name, paramTypes[i], false);
+        }
+
+        // Analyze function body
+        TypePtr bodyType = funcDecl->body->accept(*this);
+
+        // Check return type if function has non-void return type
+        if (!currentReturnType_->isVoid()) {
+            checkTypeEquals(currentReturnType_, bodyType, "Function body return type mismatch", 0,
+                            0);
+        }
+
+        // Restore return type
+        currentReturnType_ = savedReturnType;
+
+        // Exit function scope
+        env_.endScope();
+    }
+}
+
 TypePtr SemanticAnalyzer::visit(ast::SeqExpr* expr) {
     TypePtr lastType = env_.getTypeContext().getVoidType();
     for (const auto& e : expr->exprs) {
@@ -521,57 +590,7 @@ TypePtr SemanticAnalyzer::visit(ast::VarDecl* decl) {
     return nullptr;
 }
 
-TypePtr SemanticAnalyzer::visit(ast::FunctionDecl* decl) {
-    // Translate parameter types
-    std::vector<TypePtr> paramTypes;
-    for (const auto& param : decl->params) {
-        TypePtr paramType = env_.lookupType(param->type_id);
-        if (!paramType) {
-            error("Undefined parameter type: " + param->type_id, 0, 0);
-        }
-        paramTypes.push_back(paramType);
-    }
-
-    // Translate return type (if specified)
-    TypePtr returnType = env_.getTypeContext().getVoidType();
-    if (!decl->result_type.empty()) {
-        returnType = env_.lookupType(decl->result_type);
-        if (!returnType) {
-            error("Undefined return type: " + decl->result_type, 0, 0);
-        }
-    }
-
-    // Enter function into environment
-    env_.enterFunc(decl->name, paramTypes, returnType);
-
-    // Enter new scope for function body
-    env_.beginScope();
-
-    // Save and set current return type
-    TypePtr savedReturnType = currentReturnType_;
-    currentReturnType_ = returnType;
-
-    // Enter parameters into environment
-    for (size_t i = 0; i < decl->params.size(); ++i) {
-        env_.enterVar(decl->params[i]->name, paramTypes[i], false);
-    }
-
-    // Analyze function body
-    TypePtr bodyType = decl->body->accept(*this);
-
-    // Check return type if function has non-void return type
-    if (!returnType->isVoid()) {
-        checkTypeEquals(returnType, bodyType, "Function body return type mismatch", 0, 0);
-    }
-
-    // Restore return type
-    currentReturnType_ = savedReturnType;
-
-    // Exit function scope
-    env_.endScope();
-
-    return nullptr;
-}
+TypePtr SemanticAnalyzer::visit(ast::FunctionDecl*) { return nullptr; }
 
 }  // namespace semantic
 }  // namespace tiger
