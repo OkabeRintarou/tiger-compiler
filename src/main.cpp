@@ -6,6 +6,8 @@
 #include "ast/ast.hpp"
 #include "lexer/lexer.hpp"
 #include "parser/parser.hpp"
+#include "semantic/semantic_analyzer.hpp"
+#include "translate/escape.hpp"
 
 std::string readFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -27,18 +29,33 @@ int main(int argc, char* argv[]) {
     try {
         std::string source = readFile(argv[1]);
 
+        // Lexical analysis
         tiger::Lexer lexer(source);
         std::vector<tiger::Token> tokens = lexer.tokenize();
-
         std::cout << "Lexical analysis completed: " << tokens.size() << " tokens" << std::endl;
 
+        // Parsing
         tiger::Parser parser(tokens);
         tiger::ast::ExprPtr ast = parser.parse();
-
         std::cout << "Parsing completed successfully" << std::endl;
 
+        // Escape analysis (before semantic analysis)
+        tiger::translate::findEscapes(ast);
+        std::cout << "Escape analysis completed" << std::endl;
+
+        // Semantic analysis
+        tiger::semantic::TypeContext typeCtx;
+        tiger::semantic::SemanticAnalyzer semantic(typeCtx);
+        auto resultType = semantic.analyze(ast);
+        std::cout << "Semantic analysis completed successfully" << std::endl;
+
+        std::cout << "\nCompilation completed successfully" << std::endl;
         return 0;
 
+    } catch (const tiger::semantic::SemanticError& e) {
+        std::cerr << "Semantic error at (" << e.line() << "," << e.column() << "): " << e.what()
+                  << std::endl;
+        return 1;
     } catch (const tiger::SyntaxError& e) {
         std::cerr << "Syntax error" << std::endl;
         return 1;
