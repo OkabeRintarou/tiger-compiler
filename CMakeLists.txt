@@ -46,11 +46,25 @@ set(SEMANTIC_SOURCES
     src/semantic/semantic_analyzer.cpp
 )
 
+set(TRANSLATE_SOURCES
+    src/translate/escape.cpp
+    src/translate/translate.cpp
+    src/translate/x64_frame.cpp
+)
+
+set(IR_SOURCES
+    src/ir/tree.cpp
+    src/ir/print.cpp
+    src/ir/ir_generator.cpp
+)
+
 set(ALL_SOURCES
     ${LEXER_SOURCES}
     ${AST_SOURCES}
     ${PARSER_SOURCES}
     ${SEMANTIC_SOURCES}
+    ${TRANSLATE_SOURCES}
+    ${IR_SOURCES}
 )
 
 add_library(tiger-lib STATIC ${ALL_SOURCES})
@@ -67,6 +81,7 @@ set(TEST_SOURCES
     tests/tiger_test.cpp
     tests/parser_test.cpp
     tests/semantic_test.cpp
+    tests/escape_test.cpp
 )
 
 # Main test executable (links all test files together)
